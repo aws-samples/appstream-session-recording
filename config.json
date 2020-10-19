@@ -1,0 +1,24 @@
+{
+  "SessionStart": {
+    "executables": [
+      {
+        "context": "system",
+        "filename": "C:\\Windows\\system32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "arguments": "-NonInteractive -File C:\\SessionRecording\\Scripts\\script_a.ps1",
+        "s3LogEnabled": true
+      }
+    ],
+    "waitingTime": 60
+  },
+  "SessionTermination": {
+    "executables": [
+      {
+        "context": "system",
+        "filename": "C:\\Windows\\system32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "arguments": "-NonInteractive -File C:\\SessionRecording\\Scripts\\script_c.ps1",
+        "s3LogEnabled": true
+      }
+    ],
+    "waitingTime": 60
+  }
+}

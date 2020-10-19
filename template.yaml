@@ -1,0 +1,192 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Provision the required resources for the blog post example 'How to Record a Video of Amazon AppStream 2.0 Sessions'.
+
+Parameters:
+  VpcIdParam:
+    Type: String
+    Description: To deploy the AppStream 2.0 resources in an existing VPC, enter the ID of the VPC. Leave blank to have CloudFormation create a new VPC.
+
+  Subnet1IdParam:
+    Type: String
+    Description: To deploy the AppStream 2.0 resources in an existing VPC, enter the ID of a first subnet in that VPC. Leave blank to have CloudFormation create a new VPC.
+
+  Subnet2IdParam:
+    Type: String
+    Description: To deploy the AppStream 2.0 resources in an existing VPC, enter the ID of a second subnet in that VPC. The two subnets must be in different availability zones. Leave blank to have CloudFormation create a new VPC.
+
+Metadata:
+  'AWS::CloudFormation::Interface':
+    ParameterGroups:
+    - Label:
+        default: Network
+      Parameters:
+      - VpcIdParam
+      - Subnet1IdParam
+      - Subnet2IdParam
+
+    ParameterLabels:
+      VpcIdParam:
+        default: VPC ID
+      Subnet1IdParam:
+        default: Subnet 1 ID
+      Subnet2IdParam:
+        default: Subnet 2 ID
+
+Conditions:
+  CreateVPC: !Equals [ !Ref VpcIdParam , "" ]
+
+Resources:
+  VPC:
+    Condition: CreateVPC
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/24
+      Tags:
+      - Key: Name
+        Value: !Sub 'VPC - ${AWS::StackName}'
+
+  InternetGateway:
+    Condition: CreateVPC
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: Name
+        Value: !Sub 'IGW - ${AWS::StackName}'
+
+  AttachGateway:
+    Condition: CreateVPC
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  Subnet1:
+    Condition: CreateVPC
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.0.0/25
+      MapPublicIpOnLaunch: True
+      AvailabilityZone: !Select 
+      - 0
+      - !GetAZs 
+        Ref: 'AWS::Region'
+      Tags:
+      - Key: Name
+        Value: !Sub 'Subnet 1 - ${AWS::StackName}'
+
+  Subnet2:
+    Condition: CreateVPC
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.0.128/25
+      MapPublicIpOnLaunch: True
+      AvailabilityZone: !Select 
+      - 1
+      - !GetAZs 
+        Ref: 'AWS::Region'
+      Tags:
+      - Key: Name
+        Value: !Sub 'Subnet 2 - ${AWS::StackName}'
+
+  RouteTable:
+    Condition: CreateVPC
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Sub 'Route Table - ${AWS::StackName}'
+
+  RouteTableEntry:
+    Condition: CreateVPC
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  RouteTableSubnetAssociation1:
+    Condition: CreateVPC
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet1
+      RouteTableId: !Ref RouteTable
+
+  RouteTableSubnetAssociation2:
+    Condition: CreateVPC
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet2
+      RouteTableId: !Ref RouteTable
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for the blog post example [How to Record a Video of Amazon AppStream 2.0 Sessions]
+      VpcId: !If [CreateVPC, !Ref VPC, !Ref VpcIdParam]
+
+  AppStreamRole: 
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: Allow
+            Principal: 
+              Service: appstream.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonAppStreamServiceAccess
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement: 
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub '${Bucket.Arn}/*'
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: arn:aws:s3:::appstream-session-recording/*
+
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+Outputs:
+  VpcId:
+    Description: VPC ID
+    Value: !If [CreateVPC, !Ref VPC, !Ref VpcIdParam]
+  Subnet1Id:
+    Description: Subnet 1 ID
+    Value: !If [CreateVPC, !Ref Subnet1, !Ref Subnet1IdParam]
+  Subnet2Id:
+    Description: Subnet 2 ID
+    Value: !If [CreateVPC, !Ref Subnet2, !Ref Subnet2IdParam]
+  SecurityGroupID:
+    Description: Security Group ID
+    Value: !Ref SecurityGroup
+  IamRoleName:
+    Description: Name of the IAM role for AppStream 2.0
+    Value: !Ref AppStreamRole
+  BucketName:
+    Description: Name of the S3 Bucket
+    Value: !Ref Bucket
+  BucketRegion:
+    Description: Region of the S3 Bucket
+    Value: !Ref AWS::Region
