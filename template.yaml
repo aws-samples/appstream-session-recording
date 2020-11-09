@@ -151,9 +151,6 @@ Resources:
               - Effect: Allow
                 Action: s3:PutObject
                 Resource: !Sub '${Bucket.Arn}/*'
-              - Effect: Allow
-                Action: s3:GetObject
-                Resource: arn:aws:s3:::appstream-session-recording/*
 
   Bucket:
     Type: AWS::S3::Bucket

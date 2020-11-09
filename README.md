@@ -2,19 +2,21 @@
 
 The solution lets you record a video of AppStream 2.0 streaming sessions by using [FFmpeg](https://ffmpeg.org/), a popular media framework. For more information, see the AWS Security Blog post [How to record a video of Amazon AppStream 2.0 streaming sessions](https://todo/).
 
+> The associated blog post will be posted soon.
+
 ## Overview and architecture
 
 AppStream 2.0 enables you to run [custom scripts](https://docs.aws.amazon.com/appstream2/latest/developerguide/use-session-scripts.html) to prepare the streaming instance before the applications launch or after the streaming session has completed. Figure 1 shows a simplified description of what happens before, during and after a streaming session.
 
 ![Solution architecture diagram](architecture.png)
 
-1. Before the streaming session starts, AppStream 2.0 runs [script A](https://todo/), which uses [PsExec](https://docs.microsoft.com/en-us/sysinternals/downloads/psexec), a utility that enables administrators to run commands on local or remote computers, to launch script B. Script B then runs during the entire streaming session. PsExec can run the script as the [LocalSystem](https://docs.microsoft.com/en-us/windows/win32/services/localsystem-account) account, a service account that has extensive privileges on a local system, while it interacts with the desktop of another session. Using the LocalSystem account, you can use FFmpeg to record the session screen and prevent AppStream 2.0 users from stopping or tampering with the solution, as long as they aren’t granted local administrator rights.
+1. Before the streaming session starts, AppStream 2.0 runs [script A](script_a.ps1), which uses [PsExec](https://docs.microsoft.com/en-us/sysinternals/downloads/psexec), a utility that enables administrators to run commands on local or remote computers, to launch script B. Script B then runs during the entire streaming session. PsExec can run the script as the [LocalSystem](https://docs.microsoft.com/en-us/windows/win32/services/localsystem-account) account, a service account that has extensive privileges on a local system, while it interacts with the desktop of another session. Using the LocalSystem account, you can use FFmpeg to record the session screen and prevent AppStream 2.0 users from stopping or tampering with the solution, as long as they aren’t granted local administrator rights.
 
-2. [Script B](https://todo/) launches FFmpeg and starts recording the desktop. The solution uses the FFmpeg built-in screen-grabber to capture the desktop across all the available screens.
+2. [Script B](script_b.ps1) launches FFmpeg and starts recording the desktop. The solution uses the FFmpeg built-in screen-grabber to capture the desktop across all the available screens.
 
 3. When FFmpeg starts recording, it captures the area covered by the desktop at that time. If the number of screens or the resolution changes, a portion of the desktop might be outside the recorded area. In that case, script B stops the recording and starts FFmpeg again.
 
-4. After the streaming session ends, AppStream 2.0 runs [script C](https://todo/), which notifies script B that it must end the recording and close. Script B stops FFmpeg.
+4. After the streaming session ends, AppStream 2.0 runs [script C](script_c.ps1), which notifies script B that it must end the recording and close. Script B stops FFmpeg.
 
 5. Before exiting, script B uploads the video files that FFmpeg generated to [Amazon Simple Storage Service (Amazon S3)](https://aws.amazon.com/s3/). It also stores [user and session metadata](https://docs.aws.amazon.com/appstream2/latest/developerguide/customize-fleets.html#customize-fleets-persist-environment-variables) in Amazon S3, along with the video files, for easy retrieval of session recordings.
 
