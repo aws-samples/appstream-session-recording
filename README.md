@@ -1,8 +1,6 @@
 # How to record a video of Amazon AppStream 2.0 streaming sessions
 
-The solution lets you record a video of AppStream 2.0 streaming sessions by using [FFmpeg](https://ffmpeg.org/), a popular media framework. For more information, see the AWS Security Blog post [How to record a video of Amazon AppStream 2.0 streaming sessions](https://todo/).
-
-> The associated blog post will be posted soon.
+The solution lets you record a video of AppStream 2.0 streaming sessions by using [FFmpeg](https://ffmpeg.org/), a popular media framework. For more information, see the AWS Security Blog post [How to record a video of Amazon AppStream 2.0 streaming sessions](https://aws.amazon.com/fr/blogs/security/how-to-record-video-of-amazon-appstream-2-0-streaming-sessions/).
 
 ## Overview and architecture
 
